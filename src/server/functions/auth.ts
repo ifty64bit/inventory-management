@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { userSchema } from "@/shared/schemas/auth";
+import { signinSchema, userSchema } from "@/shared/schemas/auth";
 import { auth } from "../lib/auth";
 
 export const signup = createServerFn({
@@ -19,6 +19,33 @@ export const signup = createServerFn({
 
 		if (!res.ok) {
 			let errorMessage = "Signup failed";
+			try {
+				const error = await res.json();
+				errorMessage = error.message || errorMessage;
+			} catch {
+				// ignore json parse error
+			}
+			throw new Error(errorMessage);
+		}
+
+		return { success: true };
+	});
+
+export const signin = createServerFn({
+	method: "POST",
+})
+	.inputValidator(signinSchema)
+	.handler(async ({ data }) => {
+		const res = await auth.api.signInEmail({
+			body: {
+				email: data.email,
+				password: data.password,
+			},
+			asResponse: true,
+		});
+
+		if (!res.ok) {
+			let errorMessage = "Signin failed";
 			try {
 				const error = await res.json();
 				errorMessage = error.message || errorMessage;
