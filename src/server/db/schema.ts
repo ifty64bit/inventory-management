@@ -1,6 +1,8 @@
+import { relations } from "drizzle-orm";
 import {
 	boolean,
 	integer,
+	jsonb,
 	pgTable,
 	serial,
 	text,
@@ -54,3 +56,41 @@ export const verifications = pgTable("verifications", {
 	expiresAt: timestamp("expires_at").notNull(),
 	...timestamps,
 });
+
+export const itemTypes = pgTable("item_types", {
+	id: serial("id").primaryKey(),
+	name: text("name").notNull(),
+	description: text("description"),
+	schema: jsonb("schema")
+		.$type<{
+			fields: Array<{
+				key: string;
+				type: "string" | "number" | "boolean";
+				label: string;
+			}>;
+		}>()
+		.notNull(),
+	...timestamps,
+});
+
+export const itemTypesRelations = relations(itemTypes, ({ many }) => ({
+	items: many(items),
+}));
+
+export const items = pgTable("items", {
+	id: serial("id").primaryKey(),
+	name: text("name").notNull(),
+	sku: text("sku").notNull().unique(),
+	typeId: integer("type_id")
+		.notNull()
+		.references(() => itemTypes.id, { onDelete: "cascade" }),
+	attributes: jsonb("attributes").$type<Record<string, any>>().notNull(),
+	...timestamps,
+});
+
+export const itemsRelations = relations(items, ({ one }) => ({
+	type: one(itemTypes, {
+		fields: [items.typeId],
+		references: [itemTypes.id],
+	}),
+}));
